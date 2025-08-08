@@ -5,162 +5,212 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Uncoded Pong</title>
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-    body {
-        margin: 0;
-        background: black;
-        overflow: hidden;
-    }
+  body {
+    background: black;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+  }
 
-    canvas {
-        display: block;
-    }
+  canvas {
+    background: black;
+    display: block;
+    border: 6px solid #9b59b6;
+    box-shadow: 0 0 20px #9b59b6;
+  }
+
+  .scoreboard {
+    margin: 10px;
+    font-size: 16px;
+  }
+
+  .message {
+    margin-top: 10px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .btn {
+    background: #FF2C9C;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    font-family: 'Press Start 2P', cursive;
+    cursor: pointer;
+    margin-top: 15px;
+    box-shadow: 0 0 10px #FF2C9C;
+  }
+  .btn:hover {
+    background: #ff5fb6;
+  }
 </style>
 </head>
 <body>
 
-<canvas id="pongCanvas"></canvas>
+<div class="scoreboard">
+  <span id="playerScore">0</span> - <span id="aiScore">0</span>
+</div>
+
+<canvas id="gameCanvas" width="640" height="480"></canvas>
+
+<div class="message" id="gameMessage">First to 10 wins!</div>
+
+<button class="btn" id="playBtn">▶ PLAY NOW</button>
+<button class="btn" id="restartBtn" style="display:none;">RESTART</button>
 
 <script>
-const canvas = document.getElementById("pongCanvas");
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-// Variables del juego
-let gameStarted = false;
+let paddleHeight = 80;
+let paddleWidth = 10;
+let playerY = canvas.height / 2 - paddleHeight / 2;
+let aiY = playerY;
+let paddleSpeed = 8; // barra rápida
+let ballSize = 10;
+let ballX = canvas.width / 2;
+let ballY = canvas.height / 2;
+let ballSpeedX = 5; // velocidad estable
+let ballSpeedY = 3;
 let playerScore = 0;
 let aiScore = 0;
+let upPressed = false;
+let downPressed = false;
+let gameRunning = false;
 
-// Paletas
-const paddleWidth = 10, paddleHeight = 100;
-let playerY = canvas.height / 2 - paddleHeight / 2;
-let aiY = canvas.height / 2 - paddleHeight / 2;
+document.getElementById("playBtn").addEventListener("click", () => {
+  resetBall();
+  playerScore = 0;
+  aiScore = 0;
+  updateScores();
+  document.getElementById("playBtn").style.display = "none";
+  document.getElementById("restartBtn").style.display = "none";
+  document.getElementById("gameMessage").textContent = "First to 10 wins!";
+  gameRunning = true;
+});
 
-// Bola
-const ballSize = 10;
-let ballX = canvas.width / 2, ballY = canvas.height / 2;
-let ballSpeedX = 5, ballSpeedY = 5;
+document.getElementById("restartBtn").addEventListener("click", () => {
+  resetBall();
+  playerScore = 0;
+  aiScore = 0;
+  updateScores();
+  document.getElementById("restartBtn").style.display = "none";
+  document.getElementById("gameMessage").textContent = "First to 10 wins!";
+  gameRunning = true;
+});
 
-// Parpadeo del texto
-let blinkTimer = 0;
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowUp") upPressed = true;
+  if (e.key === "ArrowDown") downPressed = true;
+});
 
-// Detectar inicio del juego
-document.addEventListener("keydown", startGame);
-document.addEventListener("click", startGame);
+document.addEventListener("keyup", (e) => {
+  if (e.key === "ArrowUp") upPressed = false;
+  if (e.key === "ArrowDown") downPressed = false;
+});
 
-function startGame() {
-    if (!gameStarted) {
-        gameStarted = true;
-    }
-}
-
-// Dibuja "▶ PLAY NOW" con parpadeo
-function drawPlayNow() {
-    blinkTimer += 0.05; 
-    if (Math.sin(blinkTimer) > 0) { // Aparece y desaparece suavemente
-        ctx.font = "20px 'Press Start 2P'";
-        ctx.fillStyle = "#ff4da6";
-        ctx.textAlign = "center";
-        ctx.shadowColor = "black";
-        ctx.shadowBlur = 4;
-        ctx.fillText("▶ PLAY NOW", canvas.width / 2, canvas.height / 2);
-    }
-}
-
-// Dibuja las paletas
 function drawPaddle(x, y, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, paddleWidth, paddleHeight);
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, paddleWidth, paddleHeight);
 }
 
-// Dibuja la bola
-function drawBall(x, y) {
-    ctx.fillStyle = "white";
-    ctx.beginPath();
-    ctx.arc(x, y, ballSize / 2, 0, Math.PI * 2);
-    ctx.fill();
+function drawBall() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(ballX, ballY, ballSize, ballSize);
 }
 
-// Dibuja marcador
-function drawScore() {
-    ctx.font = "16px 'Press Start 2P'";
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.fillText(`Player: ${playerScore} | AI: ${aiScore}`, canvas.width / 2, 30);
+function updateScores() {
+  document.getElementById("playerScore").textContent = playerScore;
+  document.getElementById("aiScore").textContent = aiScore;
 }
 
-// Lógica del juego
-function moveBall() {
-    ballX += ballSpeedX;
-    ballY += ballSpeedY;
-
-    // Rebote en bordes
-    if (ballY <= 0 || ballY >= canvas.height) {
-        ballSpeedY *= -1;
-    }
-
-    // Colisión con jugador
-    if (ballX <= paddleWidth && ballY > playerY && ballY < playerY + paddleHeight) {
-        ballSpeedX *= -1;
-    }
-
-    // Colisión con AI
-    if (ballX >= canvas.width - paddleWidth && ballY > aiY && ballY < aiY + paddleHeight) {
-        ballSpeedX *= -1;
-    }
-
-    // Gol para AI
-    if (ballX < 0) {
-        aiScore++;
-        resetBall();
-    }
-
-    // Gol para jugador
-    if (ballX > canvas.width) {
-        playerScore++;
-        resetBall();
-    }
-}
-
-// Reiniciar bola
 function resetBall() {
-    ballX = canvas.width / 2;
-    ballY = canvas.height / 2;
-    ballSpeedX *= -1;
+  ballX = canvas.width / 2;
+  ballY = canvas.height / 2;
+  ballSpeedX = -ballSpeedX;
+  ballSpeedY = 3 * (Math.random() > 0.5 ? 1 : -1);
 }
 
-// Movimiento AI
+function drawCourt() {
+  ctx.strokeStyle = "#9b59b6";
+  ctx.lineWidth = 4;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, 0);
+  ctx.lineTo(canvas.width / 2, canvas.height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
 function moveAI() {
-    const aiCenter = aiY + paddleHeight / 2;
-    if (aiCenter < ballY - 35) {
-        aiY += 6;
-    } else if (aiCenter > ballY + 35) {
-        aiY -= 6;
-    }
+  let aiCenter = aiY + paddleHeight / 2;
+  if (aiCenter < ballY - 35) aiY += 4; // IA más lenta
+  else if (aiCenter > ballY + 35) aiY -= 4;
 }
 
-// Loop principal
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawCourt();
+  drawPaddle(0, playerY, "#FF2C9C"); // barra rosa
+  drawPaddle(canvas.width - paddleWidth, aiY, "#2eccb6"); // barra verde menta
+  drawBall();
+}
+
+function update() {
+  if (!gameRunning) return;
+
+  if (upPressed && playerY > 0) playerY -= paddleSpeed;
+  if (downPressed && playerY < canvas.height - paddleHeight) playerY += paddleSpeed;
+
+  moveAI();
+
+  ballX += ballSpeedX;
+  ballY += ballSpeedY;
+
+  if (ballY <= 0 || ballY + ballSize >= canvas.height) ballSpeedY = -ballSpeedY;
+
+  if (ballX <= paddleWidth && ballY + ballSize >= playerY && ballY <= playerY + paddleHeight) {
+    ballSpeedX = -ballSpeedX;
+  }
+
+  if (ballX + ballSize >= canvas.width - paddleWidth && ballY + ballSize >= aiY && ballY <= aiY + paddleHeight) {
+    ballSpeedX = -ballSpeedX;
+  }
+
+  if (ballX < 0) {
+    aiScore++;
+    updateScores();
+    resetBall();
+  }
+
+  if (ballX > canvas.width) {
+    playerScore++;
+    updateScores();
+    resetBall();
+  }
+
+  if (playerScore >= 10 || aiScore >= 10) {
+    gameRunning = false;
+    document.getElementById("restartBtn").style.display = "inline-block";
+    document.getElementById("gameMessage").textContent = playerScore >= 10 
+      ? "CONGRATS 😊 YOU WON 10% DISCOUNT! CODE: NSTLG10"
+      : "Keep trying... 😢";
+  }
+}
+
 function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (!gameStarted) {
-        drawPlayNow();
-    } else {
-        moveBall();
-        moveAI();
-        drawPaddle(0, playerY, "deeppink");
-        drawPaddle(canvas.width - paddleWidth, aiY, "lightgreen");
-        drawBall(ballX, ballY);
-        drawScore();
-    }
-
-    requestAnimationFrame(gameLoop);
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
 </script>
+
 </body>
 </html>
