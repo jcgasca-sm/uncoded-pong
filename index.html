@@ -1,216 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Uncoded Pong</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UNCODED Pong</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
   body {
-    background: black;
-    margin: 0;
+    background-color: black;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
     color: white;
-    font-family: 'Press Start 2P', cursive;
   }
 
   canvas {
-    background: black;
+    border: 8px solid #a020f0;
+    box-shadow: 0 0 20px #a020f0;
     display: block;
-    border: 6px solid #9b59b6;
-    box-shadow: 0 0 20px #9b59b6;
+    background-color: black;
   }
 
-  .scoreboard {
-    margin: 10px;
-    font-size: 16px;
-  }
-
-  .message {
-    margin-top: 10px;
-    font-size: 14px;
+  #overlay, #endScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
     text-align: center;
   }
 
-  .btn {
-    background: #FF2C9C;
-    border: none;
+  #overlay button, #endScreen button {
+    background-color: #ff2c9c;
     color: white;
+    font-family: 'Press Start 2P', monospace;
     padding: 10px 20px;
-    font-family: 'Press Start 2P', cursive;
+    font-size: 14px;
+    border: none;
     cursor: pointer;
-    margin-top: 15px;
-    box-shadow: 0 0 10px #FF2C9C;
+    margin-top: 20px;
   }
-  .btn:hover {
-    background: #ff5fb6;
+
+  #score {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    z-index: 1;
+  }
+
+  #message {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    z-index: 1;
   }
 </style>
 </head>
 <body>
 
-<div class="scoreboard">
-  <span id="playerScore">0</span> - <span id="aiScore">0</span>
+<div id="overlay">
+  <h1>▶ PLAY NOW</h1>
+  <button id="playBtn">PLAY</button>
 </div>
 
-<canvas id="gameCanvas" width="640" height="480"></canvas>
+<canvas id="pong" width="800" height="600"></canvas>
 
-<div class="message" id="gameMessage">First to 10 wins!</div>
+<div id="score"></div>
+<div id="message">First to 10 wins</div>
 
-<button class="btn" id="playBtn">▶ PLAY NOW</button>
-<button class="btn" id="restartBtn" style="display:none;">RESTART</button>
+<div id="endScreen" style="display:none;">
+  <h1 id="endMessage"></h1>
+  <button id="restartBtn">RESTART</button>
+</div>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('pong');
+const ctx = canvas.getContext('2d');
 
-let paddleHeight = 80;
-let paddleWidth = 10;
-let playerY = canvas.height / 2 - paddleHeight / 2;
-let aiY = playerY;
-let paddleSpeed = 8; // barra rápida
-let ballSize = 10;
-let ballX = canvas.width / 2;
-let ballY = canvas.height / 2;
-let ballSpeedX = 5; // velocidad estable
-let ballSpeedY = 3;
-let playerScore = 0;
-let aiScore = 0;
-let upPressed = false;
-let downPressed = false;
+const overlay = document.getElementById('overlay');
+const playBtn = document.getElementById('playBtn');
+const endScreen = document.getElementById('endScreen');
+const endMessage = document.getElementById('endMessage');
+const restartBtn = document.getElementById('restartBtn');
+
+let upArrowPressed = false;
+let downArrowPressed = false;
 let gameRunning = false;
 
-document.getElementById("playBtn").addEventListener("click", () => {
-  resetBall();
-  playerScore = 0;
-  aiScore = 0;
-  updateScores();
-  document.getElementById("playBtn").style.display = "none";
-  document.getElementById("restartBtn").style.display = "none";
-  document.getElementById("gameMessage").textContent = "First to 10 wins!";
-  gameRunning = true;
-});
+// Colors
+const paddleWidth = 10, paddleHeight = 100;
+const playerColor = '#ff2c9c';
+const aiColor = '#98ff98';
+const ballColor = '#fff';
 
-document.getElementById("restartBtn").addEventListener("click", () => {
-  resetBall();
-  playerScore = 0;
-  aiScore = 0;
-  updateScores();
-  document.getElementById("restartBtn").style.display = "none";
-  document.getElementById("gameMessage").textContent = "First to 10 wins!";
-  gameRunning = true;
-});
+// Game objects
+const player = { x: 10, y: canvas.height/2 - paddleHeight/2, width: paddleWidth, height: paddleHeight, dy: 8 };
+const ai = { x: canvas.width - paddleWidth - 10, y: canvas.height/2 - paddleHeight/2, width: paddleWidth, height: paddleHeight, dy: 6 };
+const ball = { x: canvas.width/2, y: canvas.height/2, radius: 7, speed: 5, dx: 5, dy: 5 };
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowUp") upPressed = true;
-  if (e.key === "ArrowDown") downPressed = true;
-});
+let playerScore = 0;
+let aiScore = 0;
+const winningScore = 10;
 
-document.addEventListener("keyup", (e) => {
-  if (e.key === "ArrowUp") upPressed = false;
-  if (e.key === "ArrowDown") downPressed = false;
-});
-
+// Draw functions
 function drawPaddle(x, y, color) {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, paddleWidth, paddleHeight);
 }
 
-function drawBall() {
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(ballX, ballY, ballSize, ballSize);
-}
-
-function updateScores() {
-  document.getElementById("playerScore").textContent = playerScore;
-  document.getElementById("aiScore").textContent = aiScore;
-}
-
-function resetBall() {
-  ballX = canvas.width / 2;
-  ballY = canvas.height / 2;
-  ballSpeedX = -ballSpeedX;
-  ballSpeedY = 3 * (Math.random() > 0.5 ? 1 : -1);
-}
-
-function drawCourt() {
-  ctx.strokeStyle = "#9b59b6";
-  ctx.lineWidth = 4;
-  ctx.setLineDash([10, 10]);
+function drawBall(x, y) {
+  ctx.fillStyle = ballColor;
   ctx.beginPath();
-  ctx.moveTo(canvas.width / 2, 0);
-  ctx.lineTo(canvas.width / 2, canvas.height);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.arc(x, y, ball.radius, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawScore() {
+  document.getElementById('score').innerHTML = `${playerScore} : ${aiScore}`;
+}
+
+function movePaddles() {
+  if (upArrowPressed && player.y > 0) player.y -= player.dy;
+  if (downArrowPressed && player.y + player.height < canvas.height) player.y += player.dy;
+}
+
+function moveBall() {
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Wall collision (top/bottom)
+  if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+    ball.dy *= -1;
+  }
+
+  // Player paddle collision
+  if (ball.x - ball.radius < player.x + player.width && 
+      ball.y > player.y && 
+      ball.y < player.y + player.height) {
+    ball.dx *= -1;
+  }
+
+  // AI paddle collision
+  if (ball.x + ball.radius > ai.x && 
+      ball.y > ai.y && 
+      ball.y < ai.y + ai.height) {
+    ball.dx *= -1;
+  }
+
+  // Score update
+  if (ball.x - ball.radius < 0) {
+    aiScore++;
+    resetBall();
+  } else if (ball.x + ball.radius > canvas.width) {
+    playerScore++;
+    resetBall();
+  }
 }
 
 function moveAI() {
-  let aiCenter = aiY + paddleHeight / 2;
-  if (aiCenter < ballY - 35) aiY += 4; // IA más lenta
-  else if (aiCenter > ballY + 35) aiY -= 4;
+  const target = ball.y - (ai.height/2);
+  if (ai.y < target) ai.y += ai.dy;
+  else if (ai.y > target) ai.y -= ai.dy;
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawCourt();
-  drawPaddle(0, playerY, "#FF2C9C"); // barra rosa
-  drawPaddle(canvas.width - paddleWidth, aiY, "#2eccb6"); // barra verde menta
-  drawBall();
+function resetBall() {
+  ball.x = canvas.width/2;
+  ball.y = canvas.height/2;
+  ball.dx *= -1;
 }
 
-function update() {
-  if (!gameRunning) return;
-
-  if (upPressed && playerY > 0) playerY -= paddleSpeed;
-  if (downPressed && playerY < canvas.height - paddleHeight) playerY += paddleSpeed;
-
-  moveAI();
-
-  ballX += ballSpeedX;
-  ballY += ballSpeedY;
-
-  if (ballY <= 0 || ballY + ballSize >= canvas.height) ballSpeedY = -ballSpeedY;
-
-  if (ballX <= paddleWidth && ballY + ballSize >= playerY && ballY <= playerY + paddleHeight) {
-    ballSpeedX = -ballSpeedX;
+function checkWinner() {
+  if (playerScore >= winningScore) {
+    endGame("CONGRATS 😊 YOU WON 10% DISCOUNT! USE CODE: NSTLG10");
+  } else if (aiScore >= winningScore) {
+    endGame("Keep trying... 😢");
   }
+}
 
-  if (ballX + ballSize >= canvas.width - paddleWidth && ballY + ballSize >= aiY && ballY <= aiY + paddleHeight) {
-    ballSpeedX = -ballSpeedX;
-  }
-
-  if (ballX < 0) {
-    aiScore++;
-    updateScores();
-    resetBall();
-  }
-
-  if (ballX > canvas.width) {
-    playerScore++;
-    updateScores();
-    resetBall();
-  }
-
-  if (playerScore >= 10 || aiScore >= 10) {
-    gameRunning = false;
-    document.getElementById("restartBtn").style.display = "inline-block";
-    document.getElementById("gameMessage").textContent = playerScore >= 10 
-      ? "CONGRATS 😊 YOU WON 10% DISCOUNT! CODE: NSTLG10"
-      : "Keep trying... 😢";
-  }
+function endGame(message) {
+  gameRunning = false;
+  endMessage.innerHTML = message;
+  endScreen.style.display = "flex";
 }
 
 function gameLoop() {
-  update();
-  draw();
+  if (!gameRunning) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawPaddle(player.x, player.y, playerColor);
+  drawPaddle(ai.x, ai.y, aiColor);
+  drawBall(ball.x, ball.y);
+  drawScore();
+
+  movePaddles();
+  moveBall();
+  moveAI();
+  checkWinner();
+
   requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
-</script>
+// Event listeners
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowUp') upArrowPressed = true;
+  if (e.key === 'ArrowDown') downArrowPressed = true;
+});
+document.addEventListener('keyup', function(e) {
+  if (e.key === 'ArrowUp') upArrowPressed = false;
+  if (e.key === 'ArrowDown') downArrowPressed = false;
+});
 
+playBtn.addEventListener('click', () => {
+  overlay.style.display = "none";
+  gameRunning = true;
+  gameLoop();
+});
+
+restartBtn.addEventListener('click', () => {
+  playerScore = 0;
+  aiScore = 0;
+  endScreen.style.display = "none";
+  gameRunning = true;
+  gameLoop();
+});
+</script>
 </body>
 </html>
