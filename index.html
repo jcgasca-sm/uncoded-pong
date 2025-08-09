@@ -32,6 +32,8 @@
   }
 
   canvas{
+    position:relative;              /* para stacking */
+    z-index:1;
     display:block;
     margin:0 auto;
     background:#000;                /* cancha negra */
@@ -47,6 +49,7 @@
     position:absolute; inset:0;
     display:flex; align-items:center; justify-content:center;
     pointer-events:auto;
+    z-index:3;                      /* encima del canvas */
   }
   .start-inner{
     display:flex; flex-direction:column; align-items:center; gap:14px;
@@ -77,6 +80,7 @@
     width:85%;
     display:none; text-align:center;
     pointer-events:none;
+    z-index:2;
   }
   #logo{
     width:140px; display:block; margin:0 auto 12px auto;
@@ -111,9 +115,9 @@
     <canvas id="gameCanvas"></canvas>
 
     <!-- START overlay -->
-    <div id="startOverlay">
+    <div id="startOverlay" aria-hidden="false">
       <div class="start-inner" role="button" aria-label="Start game">
-        <div class="playNow" id="playNowBtn">
+        <div class="playNow" id="playNowBtn" tabindex="0">
           <span class="triangle"></span>
           <span>PLAY&nbsp;&nbsp;NOW</span>
         </div>
@@ -122,7 +126,7 @@
     </div>
 
     <!-- WIN overlay -->
-    <div id="winWrap">
+    <div id="winWrap" aria-hidden="true">
       <img id="logo"
            src="https://cdn.shopify.com/s/files/1/0590/5583/3260/files/pixel_art_large_01eb3c2a-6722-418d-abfa-921e22e2c9a7.png?v=1754589799"
            alt="Uncoded Logo"/>
@@ -199,35 +203,37 @@
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const half = paddleHeight/2;
     let y = clientY - rect.top;
+    // límites para no salir del marco
     playerY = Math.max(half, Math.min(canvas.height - half, y));
   }
 
-  // Ratón
+  // Ratón (solo cuando el juego ya inició)
   canvas.addEventListener('mousemove', (e) => {
     if (!gameStarted || gameOver) return;
     pointerToCanvasY(e);
   });
 
-  // Táctil
-  const touchStart = (e) => {
-    if (!gameStarted) {
-      gameStarted = true;
-      startOverlay.style.display = 'none';
-    }
-    pointerToCanvasY(e);
-  };
-  const touchMove = (e) => {
-    e.preventDefault();
+  // Táctil (no inicia el juego; solo mueve si ya empezó)
+  canvas.addEventListener('touchstart', (e) => {
     if (!gameStarted || gameOver) return;
     pointerToCanvasY(e);
-  };
-  canvas.addEventListener('touchstart', touchStart, {passive:false});
-  canvas.addEventListener('touchmove',  touchMove,  {passive:false});
+  }, {passive:true});
 
-  // Botón PLAY
-  playNowBtn.addEventListener('click', () => {
+  canvas.addEventListener('touchmove', (e) => {
+    if (!gameStarted || gameOver) return;
+    e.preventDefault(); // para evitar scroll accidental mientras se juega
+    pointerToCanvasY(e);
+  }, {passive:false});
+
+  // Botón PLAY (y teclado por accesibilidad)
+  function startGame(){
+    if (gameStarted) return;
     gameStarted = true;
     startOverlay.style.display = 'none';
+  }
+  playNowBtn.addEventListener('click', startGame);
+  playNowBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') startGame();
   });
 
   /* ===== Dibujo ===== */
