@@ -1,121 +1,108 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Uncoded Pong - v21 SFX</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Uncoded Pong – stable + Play</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-    :root{
-      --frame:#b084f5;        /* lila del marco */
-      --pink:#FF2C9C;         /* barra jugador */
-      --mint:#98FF98;         /* barra IA */
-      --txt:#fff;
-      --bg:#000;
-    }
+  :root{
+    --frame:#b084f5;   /* marco lila */
+    --pink:#FF2C9C;    /* jugador */
+    --mint:#98FF98;    /* IA */
+    --txt:#fff;
+    --bg:#000;
+  }
 
-    html, body {
-      margin: 0; padding: 0;
-      background: var(--bg);
-      color: var(--txt);
-      font-family: 'Press Start 2P', monospace;
-      text-align: center;
-    }
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg);
+    color:var(--txt);
+    font-family:'Press Start 2P', monospace;
+    text-align:center;
+  }
 
-    #scoreboard, #instructions{
-      margin: 10px 0;
-      font-size: 10px;
-    }
+  #scoreboard,#instructions{ margin:10px 0; font-size:10px; }
 
-    #game-container{
-      position: relative;
-      width: 90vw;
-      max-width: 720px;
-      margin: 0 auto;
-    }
+  #game-container{
+    position:relative;
+    width:90vw; max-width:720px;
+    margin:0 auto;
+  }
 
-    canvas{
-      display: block;
-      margin: 0 auto;
-      background: #000;               /* cancha negra */
-      border: 8px solid var(--frame); /* marco lila */
-      border-radius: 10px;
-      box-shadow: 0 0 20px var(--frame);
-      height: auto;
-      width: 90vw;
-      max-width: 720px;
-      aspect-ratio: 4 / 3;
-    }
+  canvas{
+    display:block;
+    margin:0 auto;
+    background:#000;                /* cancha negra */
+    border:8px solid var(--frame);  /* marco lila */
+    border-radius:10px;
+    box-shadow:0 0 20px var(--frame);
+    width:90vw; max-width:720px; height:auto;
+    aspect-ratio:4/3;
+  }
 
-    /* ---------- Overlay final centrado ---------- */
-    #winWrap{
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%,-50%);
-      width: 85%;
-      display: none;
-      text-align: center;
-      pointer-events: none;
-    }
+  /* ---------- Overlay de inicio (PLAY NOW) ---------- */
+  #startOverlay{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:auto;
+  }
+  .start-inner{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    background:rgba(0,0,0,.25);
+    padding:18px 22px; border-radius:12px;
+  }
+  .playNow{
+    display:inline-flex; align-items:center; gap:10px;
+    font-size:clamp(16px,3.8vw,28px);
+    color:#ff2ca8; text-shadow:2px 2px #000;
+    letter-spacing:2px;
+    animation:blink 1.2s infinite steps(2,end);
+    cursor:pointer;
+  }
+  .triangle{
+    width:0; height:0;
+    border-left:14px solid #ff2ca8;
+    border-top:8px solid transparent;
+    border-bottom:8px solid transparent;
+    filter:drop-shadow(1px 1px 0 #000);
+  }
+  @keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.5} }
 
-    #logo{
-      width: 140px;
-      display: block;
-      margin: 0 auto 12px auto;
-      opacity: 0;
-      transform: scale(0.8);
-      pointer-events: none;
-    }
+  /* ---------- Overlay de fin (logo + msg + restart) ---------- */
+  #winWrap{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:85%;
+    display:none; text-align:center;
+    pointer-events:none;
+  }
+  #logo{
+    width:140px; display:block; margin:0 auto 12px auto;
+    opacity:0; transform:scale(.8);
+    pointer-events:none;
+  }
+  #winMsg{
+    margin:6px 0 10px 0;
+    font-size:clamp(12px,2.6vw,18px); line-height:1.6;
+  }
+  #restartBtn{
+    display:inline-block; pointer-events:auto;
+    padding:10px 14px; background:var(--frame); color:#000;
+    border:none; border-radius:6px;
+    font-family:'Press Start 2P', monospace;
+    font-size:clamp(10px,2vw,12px);
+    cursor:pointer; opacity:0; transform:translateY(6px);
+  }
+  #restartBtn:hover{ filter:brightness(1.1); }
 
-    #winMsg{
-      color: var(--txt);
-      margin: 6px 0 10px 0;
-      font-size: clamp(12px, 2.6vw, 18px);
-      line-height: 1.6;
-    }
-
-    #restartBtn{
-      display: inline-block;
-      pointer-events: auto;
-      padding: 10px 14px;
-      background: var(--frame);
-      border: none;
-      color: #000;
-      font-family: 'Press Start 2P', monospace;
-      cursor: pointer;
-      border-radius: 6px;
-      font-size: clamp(10px, 2vw, 12px);
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    #restartBtn:hover{ filter: brightness(1.1); }
-
-    /* ---------- Animaciones ---------- */
-    @keyframes fadeInUp{
-      0%   { opacity: 0; transform: translateY(8px) scale(0.98); }
-      100% { opacity: 1; transform: translateY(0)   scale(1); }
-    }
-    @keyframes popIn{
-      0%   { opacity: 0; transform: scale(0.6); }
-      60%  { opacity: 1; transform: scale(1.15); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    @keyframes fadeOutDown{
-      0%   { opacity: 1; transform: translateY(0)   scale(1); }
-      100% { opacity: 0; transform: translateY(8px) scale(0.98); }
-    }
-    @keyframes shrinkOut{
-      0%   { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.6); }
-    }
-
-    .fade-in   { animation: fadeInUp 350ms ease-out forwards; }
-    .fade-out  { animation: fadeOutDown 280ms ease-in forwards; }
-    .logo-in   { animation: popIn 650ms ease-out forwards; }
-    .logo-out  { animation: shrinkOut 300ms ease-in forwards; }
-  </style>
+  /* animaciones simples */
+  @keyframes fadeInUp{0%{opacity:0;transform:translateY(8px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes popIn{0%{opacity:0;transform:scale(.6)}60%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+  .fade-in{animation:fadeInUp .35s ease-out forwards}
+  .logo-in{animation:popIn .65s ease-out forwards}
+</style>
 </head>
 <body>
   <div id="scoreboard">Player: 0 | AI: 0</div>
@@ -123,12 +110,22 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Overlay final: logo + mensaje + botón centrados -->
+    <!-- START overlay -->
+    <div id="startOverlay">
+      <div class="start-inner" role="button" aria-label="Start game">
+        <div class="playNow" id="playNowBtn">
+          <span class="triangle"></span>
+          <span>PLAY&nbsp;&nbsp;NOW</span>
+        </div>
+        <div style="font-size:10px;color:#f0e130;opacity:.9">Move with mouse / touch</div>
+      </div>
+    </div>
+
+    <!-- WIN overlay -->
     <div id="winWrap">
       <img id="logo"
-        src="https://cdn.shopify.com/s/files/1/0590/5583/3260/files/pixel_art_large_01eb3c2a-6722-418d-abfa-921e22e2c9a7.png?v=1754589799"
-        alt="Uncoded Logo"
-      />
+           src="https://cdn.shopify.com/s/files/1/0590/5583/3260/files/pixel_art_large_01eb3c2a-6722-418d-abfa-921e22e2c9a7.png?v=1754589799"
+           alt="Uncoded Logo"/>
       <div id="winMsg"></div>
       <button id="restartBtn">RESTART</button>
     </div>
@@ -136,227 +133,202 @@
 
   <div id="instructions">First to 10 wins!</div>
 
-  <script>
-    /* ================== Audio retro (sin archivos) ================== */
-    let audioCtx = null;
-    function ensureAudio() {
-      if (!audioCtx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AC();
-      } else if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreboard = document.getElementById('scoreboard');
+
+  const startOverlay = document.getElementById('startOverlay');
+  const playNowBtn   = document.getElementById('playNowBtn');
+
+  const winWrap   = document.getElementById('winWrap');
+  const logoEl    = document.getElementById('logo');
+  const winMsgEl  = document.getElementById('winMsg');
+  const restartBtn= document.getElementById('restartBtn');
+
+  /* ===== Tamaño responsive ===== */
+  function resizeCanvas(){
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetWidth * 3/4;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', () => { resizeCanvas(); recalcUnits(); });
+
+  let unit=1;
+  function su(x){ return x*unit; }
+  function recalcUnits(){
+    unit = canvas.width/640;
+    paddleHeight = su(100);
+    paddleWidth  = su(10);
+    ball.radius  = su(7);
+  }
+
+  /* ===== Estado del juego (versión estable) ===== */
+  let paddleHeight, paddleWidth, playerY, aiY;
+  let playerScore, aiScore, winScore = 10;
+  let gameOver = false;
+  let gameStarted = false;
+
+  const PLAYER_COLOR = "#FF2C9C";
+  const AI_COLOR     = "#98FF98";
+  const NET_COLOR    = "#b084f5";
+
+  const ball = { x:0, y:0, radius:7, dx:0, dy:0 };
+
+  function initGame(){
+    recalcUnits();
+    playerY = canvas.height/2;
+    aiY     = canvas.height/2;
+    ball.x  = canvas.width/2;
+    ball.y  = canvas.height/2;
+    ball.dx = su(3.5) * (Math.random()>0.5?1:-1);
+    ball.dy = su(3.5) * (Math.random()>0.5?1:-1);
+    playerScore = 0; aiScore = 0;
+    gameOver = false; gameStarted = false;
+
+    // overlays
+    winWrap.style.display = 'none';
+    startOverlay.style.display = 'flex';
+    scoreboard.textContent = `Player: ${playerScore} | AI: ${aiScore}`;
+  }
+
+  /* ===== Control del jugador (mouse + touch) ===== */
+  function pointerToCanvasY(e){
+    const rect = canvas.getBoundingClientRect();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const half = paddleHeight/2;
+    let y = clientY - rect.top;
+    playerY = Math.max(half, Math.min(canvas.height - half, y));
+  }
+
+  // Ratón
+  canvas.addEventListener('mousemove', (e) => {
+    if (!gameStarted || gameOver) return;
+    pointerToCanvasY(e);
+  });
+
+  // Táctil
+  const touchStart = (e) => {
+    if (!gameStarted) {
+      gameStarted = true;
+      startOverlay.style.display = 'none';
     }
-    function beep(freq=600, duration=0.08, type='square', volume=0.04){
-      if (!audioCtx) return;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = type;
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      g.gain.value = volume;
-      o.start();
-      // desvanecer
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-      o.stop(audioCtx.currentTime + duration + 0.02);
-    }
-    function scoreBeep(playerScored){
-      if (!audioCtx) return;
-      if (playerScored){
-        // doble bip agudo
-        beep(880, 0.07);
-        setTimeout(() => beep(1200, 0.07), 90);
-      } else {
-        // bip grave
-        beep(440, 0.09);
-      }
-    }
-    // Habilitar audio en el primer gesto del usuario
-    ['click','mousemove','touchstart','keydown'].forEach(ev=>{
-      document.addEventListener(ev, ensureAudio, { once:false });
-    });
+    pointerToCanvasY(e);
+  };
+  const touchMove = (e) => {
+    e.preventDefault();
+    if (!gameStarted || gameOver) return;
+    pointerToCanvasY(e);
+  };
+  canvas.addEventListener('touchstart', touchStart, {passive:false});
+  canvas.addEventListener('touchmove',  touchMove,  {passive:false});
 
-    /* ================== Juego ================== */
-    const canvas      = document.getElementById("gameCanvas");
-    const ctx         = canvas.getContext("2d");
-    const scoreboard  = document.getElementById("scoreboard");
+  // Botón PLAY
+  playNowBtn.addEventListener('click', () => {
+    gameStarted = true;
+    startOverlay.style.display = 'none';
+  });
 
-    const winWrap     = document.getElementById("winWrap");
-    const logoEl      = document.getElementById("logo");
-    const winMsgEl    = document.getElementById("winMsg");
-    const restartBtn  = document.getElementById("restartBtn");
+  /* ===== Dibujo ===== */
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    function resizeCanvas(){
-      canvas.width  = canvas.offsetWidth;
-      canvas.height = canvas.offsetWidth * 3/4;
-    }
-    resizeCanvas();
-    window.addEventListener("resize", () => { resizeCanvas(); recalcUnits(); });
-
-    let unit = 1;
-    function su(x){ return x * unit; }
-    function recalcUnits(){
-      unit = canvas.width / 640;
-      paddleHeight = su(100);
-      paddleWidth  = su(10);
-      ball.radius  = su(7);
-    }
-
-    let paddleHeight, paddleWidth, playerY, aiY, playerScore, aiScore, winScore, gameOver;
-    const PLAYER_COLOR = "#FF2C9C";
-    const AI_COLOR     = "#98FF98";
-    const NET_COLOR    = "#b084f5";
-
-    const ball = { x: 0, y: 0, radius: 7, dx: 0, dy: 0 };
-
-    function initGame(){
-      recalcUnits();
-      playerY = canvas.height/2;
-      aiY     = canvas.height/2;
-
-      ball.x  = canvas.width/2;
-      ball.y  = canvas.height/2;
-      ball.dx = su(3.5) * (Math.random() > 0.5 ? 1 : -1);
-      ball.dy = su(3.5) * (Math.random() > 0.5 ? 1 : -1);
-
-      playerScore = 0;
-      aiScore     = 0;
-      winScore    = 10;
-      gameOver    = false;
-
-      // Ocultar overlay
-      winWrap.style.display = "none";
-      logoEl.classList.remove('logo-in','logo-out');
-      winMsgEl.classList.remove('fade-in','fade-out');
-      restartBtn.classList.remove('fade-in','fade-out');
-      restartBtn.style.opacity = 0;
-
-      scoreboard.textContent = `Player: ${playerScore} | AI: ${aiScore}`;
-    }
-
-    // Control del jugador con el mouse
-    document.addEventListener("mousemove", e => {
-      const rect = canvas.getBoundingClientRect();
-      playerY = e.clientY - rect.top;
-    });
-
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      // línea central punteada
-      ctx.fillStyle = NET_COLOR;
-      for (let i=0; i<canvas.height; i+= su(30)){
-        ctx.fillRect(canvas.width/2 - su(1), i, su(2), su(15));
-      }
-
-      // palas
-      ctx.fillStyle = PLAYER_COLOR;
-      ctx.fillRect(su(10), playerY - paddleHeight/2, paddleWidth, paddleHeight);
-
-      ctx.fillStyle = AI_COLOR;
-      ctx.fillRect(canvas.width - su(10) - paddleWidth, aiY - paddleHeight/2, paddleWidth, paddleHeight);
-
-      // bola
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
+    // red/punteo central
+    ctx.fillStyle = NET_COLOR;
+    for(let y=0; y<canvas.height; y+=su(30)){
+      ctx.fillRect(canvas.width/2 - su(1), y, su(2), su(15));
     }
 
-    function update(){
-      if (gameOver) return;
+    // palas
+    ctx.fillStyle = PLAYER_COLOR;
+    ctx.fillRect(su(10), playerY - paddleHeight/2, paddleWidth, paddleHeight);
 
-      // bola
-      ball.x += ball.dx;
-      ball.y += ball.dy;
+    ctx.fillStyle = AI_COLOR;
+    ctx.fillRect(canvas.width - su(10) - paddleWidth, aiY - paddleHeight/2, paddleWidth, paddleHeight);
 
-      if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
-        ball.dy = -ball.dy;
-      }
+    // bola
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+  }
 
-      // colisión jugador
-      if (
-        ball.x - ball.radius < su(10) + paddleWidth &&
+  /* ===== Lógica ===== */
+  function resetBall(){
+    ball.x = canvas.width/2;
+    ball.y = canvas.height/2;
+    ball.dx = su(3.5) * (Math.random()>0.5?1:-1);
+    ball.dy = su(3.5) * (Math.random()>0.5?1:-1);
+  }
+
+  function update(){
+    if (gameOver || !gameStarted) return;
+
+    // bola
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0){
+      ball.dy = -ball.dy;
+    }
+
+    // colisión jugador
+    if (ball.x - ball.radius < su(10) + paddleWidth &&
         ball.y > playerY - paddleHeight/2 &&
-        ball.y < playerY + paddleHeight/2
-      ){
-        ball.dx = Math.abs(ball.dx);
-        ball.x  = su(10) + paddleWidth + ball.radius;
-      }
+        ball.y < playerY + paddleHeight/2){
+      ball.dx = Math.abs(ball.dx);
+      ball.x  = su(10) + paddleWidth + ball.radius;
+    }
 
-      // colisión IA
-      if (
-        ball.x + ball.radius > canvas.width - su(10) - paddleWidth &&
+    // colisión IA
+    if (ball.x + ball.radius > canvas.width - su(10) - paddleWidth &&
         ball.y > aiY - paddleHeight/2 &&
-        ball.y < aiY + paddleHeight/2
-      ){
-        ball.dx = -Math.abs(ball.dx);
-        ball.x  = canvas.width - su(10) - paddleWidth - ball.radius;
-      }
-
-      // puntaje
-      if (ball.x - ball.radius < 0){
-        aiScore++;
-        scoreBeep(false);      // sonido IA
-        resetBall();
-      } else if (ball.x + ball.radius > canvas.width){
-        playerScore++;
-        scoreBeep(true);       // sonido jugador
-        resetBall();
-      }
-
-      // IA (fácil)
-      const aiSpeed = su(2);
-      if (aiY < ball.y - su(15)) aiY += aiSpeed;
-      else if (aiY > ball.y + su(15)) aiY -= aiSpeed;
-
-      // marcador
-      scoreboard.textContent = `Player: ${playerScore} | AI: ${aiScore}`;
-
-      // fin de juego → mostrar overlay centrado
-      if (playerScore === winScore || aiScore === winScore){
-        gameOver = true;
-
-        winMsgEl.innerHTML = playerScore === winScore
-          ? 'CONGRATS! YOU WON 10% DISCOUNT!<br/>USE CODE: <strong>NSTLG10</strong>'
-          : 'Keep trying...';
-
-        winWrap.style.display = "block";
-        logoEl.classList.add('logo-in');
-        winMsgEl.classList.add('fade-in');
-        restartBtn.classList.add('fade-in');
-      }
+        ball.y < aiY + paddleHeight/2){
+      ball.dx = -Math.abs(ball.dx);
+      ball.x  = canvas.width - su(10) - paddleWidth - ball.radius;
     }
 
-    function resetBall(){
-      ball.x  = canvas.width/2;
-      ball.y  = canvas.height/2;
-      ball.dx = su(3.5) * (Math.random() > 0.5 ? 1 : -1);
-      ball.dy = su(3.5) * (Math.random() > 0.5 ? 1 : -1);
+    // puntaje
+    if (ball.x - ball.radius < 0){ aiScore++;     resetBall(); }
+    else if (ball.x + ball.radius > canvas.width){ playerScore++; resetBall(); }
+
+    // IA fácil
+    const aiSpeed = su(2);
+    if (aiY < ball.y - su(15)) aiY += aiSpeed;
+    else if (aiY > ball.y + su(15)) aiY -= aiSpeed;
+
+    // marcador
+    scoreboard.textContent = `Player: ${playerScore} | AI: ${aiScore}`;
+
+    // fin
+    if (playerScore === winScore || aiScore === winScore){
+      gameOver = true;
+      winMsgEl.innerHTML = (playerScore === winScore)
+        ? 'CONGRATS! YOU WON 10% DISCOUNT!<br/>USE CODE: <strong>NSTLG10</strong>'
+        : 'Keep trying...';
+      winWrap.style.display = 'block';
+      logoEl.classList.add('logo-in');
+      winMsgEl.classList.add('fade-in');
+      restartBtn.classList.add('fade-in');
     }
+  }
 
-    function gameLoop(){
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
+  function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
 
-    restartBtn.addEventListener("click", () => {
-      logoEl.classList.remove('logo-in');  logoEl.classList.add('logo-out');
-      winMsgEl.classList.remove('fade-in'); winMsgEl.classList.add('fade-out');
-      restartBtn.classList.remove('fade-in'); restartBtn.classList.add('fade-out');
-
-      const onEnd = () => {
-        restartBtn.removeEventListener('animationend', onEnd);
-        initGame();
-      };
-      restartBtn.addEventListener('animationend', onEnd);
-    });
-
-    // Start
+  // Restart
+  restartBtn.addEventListener('click', () => {
     initGame();
-    gameLoop();
-  </script>
+  });
+
+  // Init
+  initGame();
+  loop();
+})();
+</script>
 </body>
 </html>
