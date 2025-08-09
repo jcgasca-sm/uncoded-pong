@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Uncoded Pong – stable + Play</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>UNCODED Pong – Stable + Play (Centered)</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -15,16 +15,28 @@
     --bg:#000;
   }
 
-  html,body{
+  /* Centrado global */
+  html, body{
     margin:0; padding:0;
+    height:100%;
     background:var(--bg);
     color:var(--txt);
     font-family:'Press Start 2P', monospace;
+  }
+  .shell{
+    min-height:100svh; /* soporta mobile */
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
     text-align:center;
   }
 
-  #scoreboard,#instructions{ margin:10px 0; font-size:10px; }
+  /* Marcadores y texto */
+  #scoreboard, #instructions{ font-size:10px; }
 
+  /* Contenedor del canvas + overlays */
   #game-container{
     position:relative;
     width:90vw; max-width:720px;
@@ -32,10 +44,8 @@
   }
 
   canvas{
-    position:relative;              /* para stacking */
-    z-index:1;
-    display:block;
-    margin:0 auto;
+    position:relative; z-index:1;  /* debajo de overlays */
+    display:block; margin:0 auto;
     background:#000;                /* cancha negra */
     border:8px solid var(--frame);  /* marco lila */
     border-radius:10px;
@@ -44,12 +54,11 @@
     aspect-ratio:4/3;
   }
 
-  /* ---------- Overlay de inicio (PLAY NOW) ---------- */
+  /* Overlay PLAY NOW */
   #startOverlay{
     position:absolute; inset:0;
     display:flex; align-items:center; justify-content:center;
-    pointer-events:auto;
-    z-index:3;                      /* encima del canvas */
+    pointer-events:auto; z-index:3;
   }
   .start-inner{
     display:flex; flex-direction:column; align-items:center; gap:14px;
@@ -61,7 +70,7 @@
     font-size:clamp(16px,3.8vw,28px);
     color:#ff2ca8; text-shadow:2px 2px #000;
     letter-spacing:2px;
-    animation:blink 1.2s infinite steps(2,end);
+    animation:blink 1.2s steps(2,end) infinite;
     cursor:pointer;
   }
   .triangle{
@@ -73,24 +82,19 @@
   }
   @keyframes blink{ 0%,100%{opacity:1} 50%{opacity:.5} }
 
-  /* ---------- Overlay de fin (logo + msg + restart) ---------- */
+  /* Overlay final (logo + msg + restart) */
   #winWrap{
     position:absolute; left:50%; top:50%;
     transform:translate(-50%,-50%);
     width:85%;
     display:none; text-align:center;
-    pointer-events:none;
-    z-index:2;
+    pointer-events:none; z-index:2;
   }
   #logo{
-    width:140px; display:block; margin:0 auto 12px auto;
-    opacity:0; transform:scale(.8);
-    pointer-events:none;
+    width:140px; display:block; margin:0 auto 12px;
+    opacity:0; transform:scale(.8); pointer-events:none;
   }
-  #winMsg{
-    margin:6px 0 10px 0;
-    font-size:clamp(12px,2.6vw,18px); line-height:1.6;
-  }
+  #winMsg{ margin:6px 0 10px; font-size:clamp(12px,2.6vw,18px); line-height:1.6; }
   #restartBtn{
     display:inline-block; pointer-events:auto;
     padding:10px 14px; background:var(--frame); color:#000;
@@ -109,33 +113,35 @@
 </style>
 </head>
 <body>
-  <div id="scoreboard">Player: 0 | AI: 0</div>
+  <div class="shell">
+    <div id="scoreboard">Player: 0 | AI: 0</div>
 
-  <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+    <div id="game-container">
+      <canvas id="gameCanvas"></canvas>
 
-    <!-- START overlay -->
-    <div id="startOverlay" aria-hidden="false">
-      <div class="start-inner" role="button" aria-label="Start game">
-        <div class="playNow" id="playNowBtn" tabindex="0">
-          <span class="triangle"></span>
-          <span>PLAY&nbsp;&nbsp;NOW</span>
+      <!-- START overlay -->
+      <div id="startOverlay" aria-hidden="false">
+        <div class="start-inner" role="button" aria-label="Start game">
+          <div class="playNow" id="playNowBtn" tabindex="0">
+            <span class="triangle"></span>
+            <span>PLAY&nbsp;&nbsp;NOW</span>
+          </div>
+          <div style="font-size:10px;color:#f0e130;opacity:.9">Move with mouse / touch</div>
         </div>
-        <div style="font-size:10px;color:#f0e130;opacity:.9">Move with mouse / touch</div>
+      </div>
+
+      <!-- WIN overlay -->
+      <div id="winWrap" aria-hidden="true">
+        <img id="logo"
+             src="https://cdn.shopify.com/s/files/1/0590/5583/3260/files/pixel_art_large_01eb3c2a-6722-418d-abfa-921e22e2c9a7.png?v=1754589799"
+             alt="Uncoded Logo"/>
+        <div id="winMsg"></div>
+        <button id="restartBtn">RESTART</button>
       </div>
     </div>
 
-    <!-- WIN overlay -->
-    <div id="winWrap" aria-hidden="true">
-      <img id="logo"
-           src="https://cdn.shopify.com/s/files/1/0590/5583/3260/files/pixel_art_large_01eb3c2a-6722-418d-abfa-921e22e2c9a7.png?v=1754589799"
-           alt="Uncoded Logo"/>
-      <div id="winMsg"></div>
-      <button id="restartBtn">RESTART</button>
-    </div>
+    <div id="instructions">First to 10 wins!</div>
   </div>
-
-  <div id="instructions">First to 10 wins!</div>
 
 <script>
 (() => {
@@ -213,7 +219,7 @@
     pointerToCanvasY(e);
   });
 
-  // Táctil (no inicia el juego; solo mueve si ya empezó)
+  // Táctil (solo mueve si ya empezó)
   canvas.addEventListener('touchstart', (e) => {
     if (!gameStarted || gameOver) return;
     pointerToCanvasY(e);
@@ -221,11 +227,11 @@
 
   canvas.addEventListener('touchmove', (e) => {
     if (!gameStarted || gameOver) return;
-    e.preventDefault(); // para evitar scroll accidental mientras se juega
+    e.preventDefault(); // evita scroll al jugar
     pointerToCanvasY(e);
   }, {passive:false});
 
-  // Botón PLAY (y teclado por accesibilidad)
+  // Botón PLAY (click/teclado)
   function startGame(){
     if (gameStarted) return;
     gameStarted = true;
@@ -299,7 +305,7 @@
     if (ball.x - ball.radius < 0){ aiScore++;     resetBall(); }
     else if (ball.x + ball.radius > canvas.width){ playerScore++; resetBall(); }
 
-    // IA fácil
+    // IA fácil (misma de la estable)
     const aiSpeed = su(2);
     if (aiY < ball.y - su(15)) aiY += aiSpeed;
     else if (aiY > ball.y + su(15)) aiY -= aiSpeed;
